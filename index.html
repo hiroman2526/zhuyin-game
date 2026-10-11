@@ -134,7 +134,8 @@ function tapSym(g,s){ speak((WORD[s]||s)+'。'+s); tapped[g].add(s); render('car
 let M=null;
 function viewMatch(v){
   const i=lvIdx('match'), L=LEVELS.match[i];
-  if(!M||M.n!==L.n){ M={n:L.n,deck:shuffled(shuffled(SYMBOLS).slice(0,L.n)).flatMap(s=>[s,s]),pick:[],locked:{}}; }
+  if(!M||M.n!==L.n){ const base=shuffled(SYMBOLS).slice(0,L.n);
+    M={n:L.n,deck:shuffled(base.flatMap(s=>[s,s])),pick:[],locked:{}}; }
   v.innerHTML='<div class="card">'+chips('match')+
     '<div class="hint">'+L.t+'：找出相同的一對（'+Object.keys(M.locked).length+'/'+L.n+'）</div>'+
     '<div class="grid">'+M.deck.map((s,k)=>'<div class="sym'+(M.locked[k]?' sel':'')+'" onclick="mpick('+k+')">'+s+'</div>').join('')+
