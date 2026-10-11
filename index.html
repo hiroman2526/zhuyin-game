@@ -141,7 +141,9 @@ function viewMatch(v){
     '<div class="grid">'+M.deck.map((s,k)=>'<div class="sym'+(M.locked[k]?' sel':'')+'" onclick="mpick('+k+')">'+s+'</div>').join('')+
     '</div><div class="row" style="margin-top:10px"><button class="btn" onclick="M=null;render(\'match\')">🔁 重排</button></div></div>';
 }
-function mpick(k){ if(M.locked[k]||M.pick.includes(k))return; M.pick.push(k); speak(M.deck[k]); render('match');
+function mpick(k){ if(M.locked[k]||M.pick.includes(k))return;
+  if(M.pick.length>=2) M.pick=[];          /* 等待視窗内的第三擊：直接開新一對，不卡住 */
+  M.pick.push(k); speak(M.deck[k]); render('match');
   if(M.pick.length===2){ const [a,b]=M.pick;
     if(M.deck[a]===M.deck[b]){ M.locked[a]=1; M.locked[b]=1; M.pick=[]; speak('很好'); render('match');
       if(Object.keys(M.locked).length>=M.n*2) complete('match'); }
