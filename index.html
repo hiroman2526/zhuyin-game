@@ -5,32 +5,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>注音樂園 — 幼兒注音遊戲</title>
 <style>
-:root{
-  --bg:#fdf6e3; --ink:#3b3226; --card:#fffdf6; --accent:#ff8f3f; --accent2:#4fa3d1;
-  --good:#5cb85c; --shadow:0 4px 14px rgba(80,60,20,.12);
-}
-*{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
-html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
-  font-family:"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif}
+:root{--bg:#fdf6e3;--ink:#3b3226;--card:#fffdf6;--accent:#ff8f3f;--accent2:#4fa3d1;--shadow:0 4px 14px rgba(80,60,20,.12)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif}
 #app{max-width:860px;margin:0 auto;padding:14px}
 h1{font-size:26px;margin:8px 4px}
 .row{display:flex;gap:10px;flex-wrap:wrap}
-.btn{border:none;border-radius:14px;background:var(--card);box-shadow:var(--shadow);
-  padding:12px 18px;font-size:18px;cursor:pointer;color:var(--ink)}
+.btn{border:none;border-radius:14px;background:var(--card);box-shadow:var(--shadow);padding:12px 18px;font-size:18px;cursor:pointer;color:var(--ink)}
 .btn.on{background:var(--accent);color:#fff}
-.btn.big{width:calc(50% - 5px);padding:22px;font-size:22px;text-align:left}
+.btn.big{width:calc(50% - 5px);padding:20px;font-size:21px;text-align:left}
+.btn.chip{padding:8px 13px;font-size:16px}
+.btn.chip.on{background:var(--accent2);color:#fff}
 .card{background:var(--card);border-radius:18px;box-shadow:var(--shadow);padding:16px;margin-top:12px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(86px,1fr));gap:10px}
-.sym{background:#fff;border-radius:14px;box-shadow:var(--shadow);text-align:center;
-  padding:12px 4px;font-size:34px;cursor:pointer}
-.sym.sel{background:var(--accent2);color:#fff}
-.opt{font-size:34px;padding:16px 10px;min-width:70px;text-align:center}
-.big{font-size:64px;text-align:center;padding:14px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:10px}
+.sym{background:#fff;border-radius:14px;box-shadow:var(--shadow);text-align:center;padding:12px 4px;font-size:32px;cursor:pointer}
+.sym.sel{background:var(--good,#5cb85c);color:#fff}
+.opt{font-size:32px;padding:14px 10px;min-width:66px;text-align:center}
+.big{font-size:64px;text-align:center;padding:12px 0}
 .muted{color:#8b7f6d;font-size:14px}
 .hint{min-height:26px;font-size:18px;text-align:center;margin:6px 0}
+.lvline{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:8px}
 #trace{background:#fff;border-radius:14px;box-shadow:var(--shadow);width:100%;touch-action:none}
 .toprow{display:flex;justify-content:space-between;align-items:center}
-.stamp{font-size:13px;color:#8b7f6d}
 table{width:100%;border-collapse:collapse;font-size:15px}
 td,th{border-bottom:1px solid #eee;padding:6px 4px;text-align:left}
 footer{text-align:center;color:#a2957f;font-size:12px;margin:18px 0 6px}
@@ -46,127 +42,163 @@ footer{text-align:center;color:#a2957f;font-size:12px;margin:18px 0 6px}
   <footer>離線可用 · 資料只存在這台裝置（localStorage），不會上傳</footer>
 </div>
 <script>
-/* ===== 資料：37 個注音符號（21 聲母＋16 韻母）＋四聲附加區塊 ===== */
-/* 標準 37 碼＝21 聲母＋16 韻母（含 ㄧㄨㄩㄦ）；四聲為附加區塊 */
+/* ===== 資料：標準 37 碼＝21 聲母＋16 韻母；四聲為附加區塊 ===== */
 const SHENGMU = ['ㄅ','ㄆ','ㄇ','ㄈ','ㄉ','ㄊ','ㄋ','ㄌ','ㄍ','ㄎ','ㄏ','ㄐ','ㄑ','ㄒ','ㄓ','ㄔ','ㄕ','ㄖ','ㄗ','ㄘ','ㄙ'];
 const YUNMU   = ['ㄚ','ㄛ','ㄜ','ㄝ','ㄞ','ㄟ','ㄠ','ㄡ','ㄢ','ㄣ','ㄤ','ㄥ','ㄦ','ㄧ','ㄨ','ㄩ'];
 const TONE    = ['ˊ','ˇ','ˋ','˙'];
-const SYMBOLS = SHENGMU.concat(YUNMU); /* 21+16 = 37 */
+const SYMBOLS = SHENGMU.concat(YUNMU); /* 21 + 16 = 37 */
+const MEDIAL  = ['ㄧ','ㄨ','ㄩ','ㄦ'];
 
-/* 每個符號的例詞（聆聽遊戲與卡片語音用） */
 const WORD = {'ㄅ':'波','ㄆ':'坡','ㄇ':'摸','ㄈ':'佛','ㄉ':'得','ㄊ':'特','ㄋ':'訥','ㄌ':'勒',
 'ㄍ':'哥','ㄎ':'科','ㄏ':'喝','ㄐ':'基','ㄑ':'七','ㄒ':'希','ㄓ':'知','ㄔ':'痴','ㄕ':'詩',
 'ㄖ':'日','ㄗ':'資','ㄘ':'雌','ㄙ':'思','ㄚ':'啊','ㄛ':'喔','ㄜ':'呃','ㄝ':'誒','ㄞ':'哀',
 'ㄟ':'誒','ㄠ':'熬','ㄡ':'歐','ㄢ':'安','ㄣ':'恩','ㄤ':'昂','ㄥ':'鞥','ㄦ':'兒','ㄧ':'衣','ㄨ':'烏','ㄩ':'迂',
 'ˊ':'第二聲','ˇ':'第三聲','ˋ':'第四聲','˙':'輕聲'};
 
-/* ===== 狀態（僅本機） ===== */
+/* ===== 關卡定義 ===== */
+const LEVELS = {
+ card:  [{t:'聲母',pool:SHENGMU},{t:'韻母',pool:YUNMU},{t:'介音與兒化',pool:MEDIAL},{t:'聲調',pool:TONE},
+         {t:'總複習',pool:SYMBOLS.slice()}],
+ match: [{t:'4 對',n:4},{t:'5 對',n:5},{t:'6 對',n:6},{t:'7 對',n:7},{t:'8 對',n:8}],
+ listen:[{t:'聲母',pool:SHENGMU,n:8},{t:'韻母',pool:YUNMU,n:8},{t:'介音與兒化',pool:MEDIAL,n:4},
+         {t:'聲調',pool:TONE,n:4},{t:'總複習',pool:SYMBOLS.slice(),n:10}],
+ trace: [{t:'聲母一',pool:SHENGMU.slice(0,11)},{t:'聲母二',pool:SHENGMU.slice(11)},
+         {t:'韻母一',pool:YUNMU.slice(0,8)},{t:'韻母二',pool:YUNMU.slice(8)},
+         {t:'聲調與複習',pool:TONE.concat(shuffled(SYMBOLS).slice(0,6))}],
+};
+function shuffled(a){return a.slice().sort(()=>Math.random()-.5)}
+
+/* ===== 狀態（僅本機 localStorage） ===== */
 let S = JSON.parse(localStorage.getItem('zhuyin') || '{}');
-S.name = S.name || ''; S.records = S.records || [];
+S.name = S.name || ''; S.records = S.records || []; S.done = S.done || {};
+for (const g of ['card','match','listen','trace']) S.done[g] = S.done[g] || {};
 const save = () => localStorage.setItem('zhuyin', JSON.stringify(S));
 
 let soundOn = true;
 function toggleSound(){ soundOn=!soundOn; document.getElementById('soundBtn').textContent='🔊 語音：'+(soundOn?'開':'關'); }
-function speak(t){ if(!soundOn||!('speechSynthesis' in window))return;
+function speak(t){ if(!soundOn||!('speechSynthesis' in window))return; speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(t); u.lang='zh-TW'; u.rate=.9; speechSynthesis.speak(u); }
 
-/* ===== 入口流程（七個）：1 歡迎 → 2 主頁 → 3 學習卡 → 4 配對 → 5 聆聽 → 6 書寫 → 7 紀錄 ===== */
+function doneCount(g){ return Object.keys(S.done[g]).length; }
+function nextLevel(g){ const n=LEVELS[g].length; for(let i=0;i<n;i++) if(!S.done[g][i]) return i; return n-1; }
+function lvIdx(g){ return S._lv && g in S._lv ? S._lv[g] : nextLevel(g); }
+function setLevel(g,i){ (S._lv=S._lv||{})[g]=i; render(g); }
+function chips(g){ const cur=lvIdx(g);
+  return '<div class="lvline">'+LEVELS[g].map((L,i)=>'<button class="btn chip'+(i===cur?' on':'')+'" onclick="setLevel(\''+g+'\','+i+')">'+(i<nextLevel(g)||S.done[g][i]?'✓':'')+(i+1)+'</button>').join('')+'</div>'; }
+function complete(g){ const i=lvIdx(g); const t=LEVELS[g][i].t;
+  speak('完成！');
+  if(!S.done[g][i]){ S.done[g][i]=true; S.records.push({game:g,lvl:t,ts:new Date().toLocaleString('zh-TW'),name:S.name}); }
+  save(); if(nextLevel(g)>=LEVELS[g].length&&S.done[g][i]) {} /* 保持在選關列 */
+  render(g); }
+
+/* ===== 七個入口流程：歡迎 → 主頁 → 四款遊戲 → 紀錄 ===== */
 function render(welcome){
-  const v=document.getElementById('view');
-  if(location.hash==='#'+welcome) {} /* hash 相容 nop */
-  const page=welcome||curView();
-  v.innerHTML='';
+  const v=document.getElementById('view'); const page=welcome||curView(); v.innerHTML='';
   if(page==='welcome'){
-    v.innerHTML='<div class="card"><div class="big">🎈</div>'+
-      '<div class="hint">你叫什麼名字？</div>'+
+    v.innerHTML='<div class="card"><div class="big">🎈</div><div class="hint">你叫什麼名字？</div>'+
       '<input id="nm" class="btn" style="width:100%;font-size:22px" placeholder="名字">'+
       '<div class="row" style="margin-top:12px"><button class="btn big" onclick="setName()">開始玩 ➜</button></div></div>';
   } else if(page==='home'){
+    const c=g=>doneCount(g)+'/'+LEVELS[g].length;
     v.innerHTML='<div class="hint">👋 '+esc(S.name)+'，要玩哪個？</div><div class="row">'+
-      card('📖','學習卡','認 37 個注音','card')+card('🧩','配對遊戲','找出相同注音','match')+
-      card('👂','聆聽遊戲','聽聲音選注音','listen')+card('✏️','書寫遊戲','描出注音','trace')+'</div>'+
-      '<div class="row" style="margin-top:10px">'+card('🏅','完成紀錄','看今天的成績','record')+'</div>';
-  } else if(page==='card'){ viewCard(v); }
-  else if(page==='match'){ viewMatch(v); }
-  else if(page==='listen'){ viewListen(v); }
-  else if(page==='trace'){ viewTrace(v); }
-  else if(page==='record'){ viewRecord(v); }
+      gcard('📖','學習卡','認 37 個注音','card',c)+gcard('🧩','配對遊戲','找出相同注音','match',c)+
+      gcard('👂','聆聽遊戲','聽聲音選注音','listen',c)+gcard('✏️','書寫遊戲','描出注音','trace',c)+'</div>'+
+      '<div class="row" style="margin-top:10px">'+gcard('🏅','完成紀錄','看今天的成績','record',c)+'</div>';
+  }
+  else if(page==='card') viewCard(v);
+  else if(page==='match') viewMatch(v);
+  else if(page==='listen') viewListen(v);
+  else if(page==='trace') viewTrace(v);
+  else if(page==='record') viewRecord(v);
 }
-function card(ic,t,d,k){return '<button class="btn big" onclick="go(\''+k+'\')">'+ic+' <b>'+t+'</b><div class="muted">'+d+'</div></button>';}
+function gcard(ic,t,d,k,cnt){const c=k==='record'?doneCount('card'):cnt(k);
+  return '<button class="btn big" onclick="go(\''+k+'\')">'+ic+' <b>'+t+'</b><div class="muted">'+d+'（'+(k==='record'?S.records.length:c)+'）</div></button>';}
 function go(p){ cur=p; render(p); }
 let cur='welcome';
 function curView(){ return cur==='welcome' && S.name ? 'home' : cur; }
 
-/* --- 入口 3：學習卡（分組浏览＋語音） --- */
-let ci=0;
+/* --- 學習卡：逐組點讀，點完該組自動完成 --- */
+let tapped = {};
 function viewCard(v){
-  const g=['聲母','韻母','介音與兒化','聲調'], pools=[SHENGMU,YUNMU.slice(0,12),['ㄦ','ㄧ','ㄨ','ㄩ'],TONE];
-  const pool=pools[ci%4];
-  v.innerHTML='<div class="card"><div class="hint"><b>'+g[ci%4]+'</b>（點一個唸出來）</div>'+
-    '<div class="grid">'+pool.map(s=>'<div class="sym" onclick="speakWord(\''+s+'\')">'+s+'</div>').join('')+
-    '</div><div class="row" style="margin-top:12px"><button class="btn" onclick="ci=(ci+1)%4;render(\'card\')">下一組 ➜</button></div></div>';
+  const i=lvIdx('card'), L=LEVELS.card[i];
+  tapped[L.t]=tapped[L.t]||new Set(); const tset=tapped[L.t];
+  v.innerHTML='<div class="card">'+chips('card')+
+    '<div class="hint"><b>'+L.t+'</b>（點一個唸出來 '+tset.size+'/'+L.pool.length+'）</div>'+
+    '<div class="grid">'+L.pool.map(s=>'<div class="sym'+(tset.has(s)?' sel':'')+'" onclick="tapSym(\''+L.t+'\',\''+s+'\')">'+s+'</div>').join('')+
+    '</div></div>';
 }
-function speakWord(s){ speak((WORD[s]||s)+'。'+s); document.querySelectorAll('.sym').forEach(e=>e.classList.remove('sel'));
-  event.target.classList.add('sel'); }
+function tapSym(g,s){ speak((WORD[s]||s)+'。'+s); tapped[g].add(s); render('card');
+  const L=LEVELS.card[lvIdx('card')]; if(tapped[g].size>=L.pool.length) complete('card'); }
 
-/* --- 入口 4：配對遊戲 --- */
-let mPick=[], mDone=0, mDeck=[];
+/* --- 配對：牌數隨關卡增加 --- */
+let M=null;
 function viewMatch(v){
-  if(!mDeck.length){ const base=SHENGMU.slice().sort(()=>Math.random()-.5).slice(0,6);
-    mDeck=base.concat(base).sort(()=>Math.random()-.5); mDone=0; }
-  v.innerHTML='<div class="card"><div class="hint">兩兩相同的一對，找出來（'+mDone+'/6）</div>'+
-   '<div class="grid">'+mDeck.map((s,i)=>'<div class="sym'+(mPick.includes(i)?' sel':'')+'" onclick="mpick('+i+',\''+s+'\')">'+s+'</div>').join('')+'</div></div>';
+  const i=lvIdx('match'), L=LEVELS.match[i];
+  if(!M||M.n!==L.n){ M={n:L.n,deck:shuffled(shuffled(SYMBOLS).slice(0,L.n)).flatMap(s=>[s,s]),pick:[],locked:{}}; }
+  v.innerHTML='<div class="card">'+chips('match')+
+    '<div class="hint">'+L.t+'：找出相同的一對（'+Object.keys(M.locked).length+'/'+L.n+'）</div>'+
+    '<div class="grid">'+M.deck.map((s,k)=>'<div class="sym'+(M.locked[k]?' sel':'')+'" onclick="mpick('+k+')">'+s+'</div>').join('')+
+    '</div><div class="row" style="margin-top:10px"><button class="btn" onclick="M=null;render(\'match\')">🔁 重排</button></div></div>';
 }
-function mpick(i,s){
-  if(mPick.includes(i))return; mPick.push(i); speak(s); render('match');
-  if(mPick.length===2){ const [a,b]=mPick;
-    if(mDeck[a]===mDeck[b]){ mDone++; mPick=[]; speak('很好'); if(mDone>=6){finish('配對');} }
-    else { setTimeout(()=>{mPick=[];render('match');},600); } }
-}
+function mpick(k){ if(M.locked[k]||M.pick.includes(k))return; M.pick.push(k); speak(M.deck[k]); render('match');
+  if(M.pick.length===2){ const [a,b]=M.pick;
+    if(M.deck[a]===M.deck[b]){ M.locked[a]=1; M.locked[b]=1; M.pick=[]; speak('很好'); render('match');
+      if(Object.keys(M.locked).length>=M.n*2) complete('match'); }
+    else setTimeout(()=>{M.pick=[];render('match');},600); } }
 
-/* --- 入口 5：聆聽遊戲 --- */
-let L=null;
+/* --- 聆聽：題數與題庫隨關卡增加 --- */
+let LQ=null;
 function viewListen(v){
-  if(!L){ const pool=SYMBOLS.slice().sort(()=>Math.random()-.5).slice(0,4);
-    const ans=pool[0]; L={opts:pool,ans,n:0,hit:0}; setTimeout(()=>speak(WORD[ans]||ans),300); }
-  v.innerHTML='<div class="card"><div class="hint">聽一聽，是哪一個？（'+L.hit+'/5）</div>'+
-   '<button class="btn" onclick="again()">🔁 再聽一次</button> <div class="row" style="margin-top:10px">'+
-   L.opts.map(s=>'<button class="btn opt" onclick="lpick(\''+s+'\')">'+s+'</button>').join('')+'</div></div>';
+  const i=lvIdx('listen'), L=LEVELS.listen[i];
+  if(!LQ||LQ.li!==i){ const q=[]; const pool=L.pool; const ansPool=shuffled(pool);
+    for(let k=0;k<L.n;k++){ const ans=ansPool[k%ansPool.length];
+      const opts=shuffled(pool.filter(s=>s!==ans)).slice(0,3); opts.splice(Math.floor(Math.random()*4),0,ans);
+      q.push({ans,opts}); }
+    LQ={li:i,q,hit:0,idx:0}; setTimeout(()=>speak(WORD[q[0].ans]||q[0].ans),300); }
+  const Q=LQ.q[LQ.idx];
+  v.innerHTML='<div class="card">'+chips('listen')+
+    '<div class="hint">'+L.t+'：聽一聽選注音（第 '+(LQ.idx+1)+'/'+LQ.q.length+' 題，答對 '+LQ.hit+'）</div>'+
+    '<button class="btn" onclick="againL()">🔁 再聽一次</button>'+
+    '<div class="row" style="margin-top:10px">'+Q.opts.map(s=>'<button class="btn opt" onclick="lpick(\''+s+'\')">'+s+'</button>').join('')+'</div></div>';
 }
-function again(){ speak(WORD[L.ans]||L.ans); }
-function lpick(s){ if(s===L.ans){L.hit++;speak('答對了');}else{speak('再試試');}
-  if(L.hit>=5){finish('聆聽');L=null;return;} 
-  const pool=SYMBOLS.slice().sort(()=>Math.random()-.5).slice(0,4); const h=L.hit;
-  L={opts:pool,ans:pool[0],hit:h,n:L.n+1}; render('listen'); setTimeout(()=>speak(WORD[L.ans]||L.ans),250); }
+function againL(){ speak(WORD[LQ.q[LQ.idx].ans]||LQ.q[LQ.idx].ans); }
+function lpick(s){ const Q=LQ.q[LQ.idx];
+  if(s===Q.ans){ LQ.hit++; speak('答對了'); } else speak('再試試');
+  if(LQ.idx+1>=LQ.q.length){ if(LQ.hit>=Math.ceil(LQ.q.length*.6)) complete('listen');
+    else speak('再玩一次'); LQ=null; render('listen'); return; }
+  LQ.idx++; render('listen'); setTimeout(()=>againL(),250); }
 
-/* --- 入口 6：書寫遊戲（描寫，不自動評分→留給教師審音） --- */
+/* --- 書寫：逐關描寫，含範字與清除 --- */
 let T=null;
 function viewTrace(v){
-  if(!T){ T={pool:SYMBOLS.slice().sort(()=>Math.random()-.5),i:0,done:0}; }
-  const s=T.pool[T.i%T.pool.length];
-  v.innerHTML='<div class="card"><div class="hint">跟著描：在格子上畫出 <b style="font-size:30px">'+s+'</b>（'+T.done+'/5）</div>'+
-   '<canvas id="trace" width="640" height="240"></canvas>'+
-   '<div class="row" style="margin-top:10px"><button class="btn" onclick="clearTrace()">清除</button>'+
-   '<button class="btn on" onclick="traceNext()">完成 ✓</button></div></div>';
+  const i=lvIdx('trace'), L=LEVELS.trace[i];
+  if(!T||T.li!==i){ T={li:i,i:0,done:0}; }
+  const s=L.pool[T.i%L.pool.length];
+  v.innerHTML='<div class="card">'+chips('trace')+
+    '<div class="hint">'+L.t+'：描出 <b style="font-size:30px">'+s+'</b>（'+T.done+'/'+L.pool.length+'）</div>'+
+    '<canvas id="trace" width="640" height="240"></canvas>'+
+    '<div class="row" style="margin-top:10px"><button class="btn" onclick="clearTrace()">清除</button>'+
+    '<button class="btn on" onclick="traceNext()">完成 ✓</button></div></div>';
   setupCanvas(s); speak(WORD[s]||s);
 }
-function setupCanvas(s){ const c=document.getElementById('trace'); const ctx=c.getContext('2d');
+function setupCanvas(s){ const c=document.getElementById('trace'); if(!c)return; const ctx=c.getContext('2d');
   ctx.font='150px sans-serif'; ctx.fillStyle='rgba(120,120,120,.25)'; ctx.textAlign='center'; ctx.fillText(s,320,175);
   let down=false; const pos=e=>{const r=c.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];};
   c.onpointerdown=e=>{down=true;const[x,y]=pos(e);ctx.beginPath();ctx.moveTo(x,y);ctx.strokeStyle='#3b3226';ctx.lineWidth=8;ctx.lineCap='round';};
   c.onpointermove=e=>{if(!down)return;const[x,y]=pos(e);ctx.lineTo(x,y);ctx.stroke();};
   c.onpointerup=()=>{down=false;}; }
-function clearTrace(){ const c=document.getElementById('trace'); const ctx=c.getContext('2d'); ctx.clearRect(0,0,640,240); const s=T.pool[T.i%T.pool.length]; setupCanvas(s); }
-function traceNext(){ speak('很好'); T.done++; if(T.done>=5){finish('書寫');T=null;return;} render('trace'); }
+function clearTrace(){ setupCanvas(LEVELS.trace[T.li].pool[T.i%LEVELS.trace[T.li].pool.length]); }
+function traceNext(){ speak('很好'); T.done++;
+  if(T.done>=LEVELS.trace[T.li].pool.length){ complete('trace'); T=null; return; }
+  render('trace'); }
 
-/* --- 入口 7：完成紀錄（本機存；教師在實機上審閱） --- */
-function finish(name){ S.records.push({game:name,ts:new Date().toLocaleString('zh-TW'),name:S.name}); save();
-  speak('完成！'); render('home'); }
+/* --- 完成紀錄 --- */
+const GNAME={card:'學習卡',match:'配對',listen:'聆聽',trace:'書寫'};
 function viewRecord(v){
   v.innerHTML='<div class="card"><div class="hint">'+esc(S.name)+' 的完成紀錄</div>'+
-   '<table><tr><th>時間</th><th>遊戲</th></tr>'+
-   S.records.slice().reverse().slice(0,20).map(r=>'<tr><td>'+esc(r.ts)+'</td><td>'+esc(r.game)+'</td></tr>').join('')+
-   '</table><div class="row" style="margin-top:12px"><button class="btn" onclick="go(\'home\')">再玩一輪 ➜</button></div></div>';
+    '<table><tr><th>時間</th><th>遊戲</th><th>關卡</th></tr>'+
+    S.records.slice().reverse().slice(0,30).map(r=>'<tr><td>'+esc(r.ts)+'</td><td>'+esc(GNAME[r.game]||r.game)+'</td><td>'+esc(r.lvl||'')+'</td></tr>').join('')+
+    '</table><div class="row" style="margin-top:12px"><button class="btn" onclick="go(\'home\')">再玩一輪 ➜</button></div></div>';
 }
 function setName(){ const el=document.getElementById('nm'); S.name=(el.value||'小朋友').trim(); save(); go('home'); }
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;');}
